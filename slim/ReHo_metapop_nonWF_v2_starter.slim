@@ -1,0 +1,232 @@
+// v2 recombination and mutation scalling rate factor
+
+initialize() {
+			
+	if (exists("outDIR")==0){
+		defineConstant("outDIR","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Xufen/slim/0_new_April24"); // outout path
+	}
+	
+	if (exists("outName")==0){
+		defineConstant("outName","0_out_burn_chr23"); // outout prefix
+	}
+	
+	if (exists("seed")==0){
+		defineConstant("seed",1234); // outout prefix
+	}
+
+	if (exists("SCALE")==0){
+		defineConstant("SCALE",10); // outout prefix
+	}
+
+	
+	//	if (exists("demo")==0){
+	//		defineConstant("demo","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Xufen/slim/ReHo_GONE_5e6SNPs_geno1_maf0.01_100gen.txt");
+	//	}
+	
+	//	if (exists("factor")==0){
+	//		defineConstant("factor",10); //correction factor for demo
+	//	}
+	
+	if (exists("chr_genes_in")==0){
+		defineConstant("chr_genes_in","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/WP1/SLiM/flycatcher_genome/CDS_chr_prop_len3400_genes13840_totalLen_47Mb.txt"); // environmental variance
+	}
+	
+	if (exists("g")==0){
+		defineConstant("g",1000); // number of genes
+	}
+	
+	if (exists("geneLength")==0){
+		defineConstant("geneLength",200); // gene Len
+	}
+	
+	if (exists("muChrom")==0){
+		defineConstant("muChrom",2.30E-09); // 2.30E-09
+	}
+	
+	if (exists("U")==0){
+		defineConstant("U",0.5); // 0.5
+	}
+	
+	if (exists("chrNum")==0){
+		defineConstant("chrNum",20); // # chroms
+	}
+	
+	
+	// path of genomic feature file
+	if (exists("coord_file_in")==0){
+		defineConstant("coord_file_in","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/genetic_rescue/captive_breeding//coords_SLiM_GCF_000247815.1_FicAlb1.5_chr23.txt"); // environmental variance
+	}
+	// path of recombination map file
+	if (exists("rho_file_in")==0){
+		defineConstant("rho_file_in","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/genetic_rescue/captive_breeding/out_rho4Ne_win2e+05_col.hun.snpPair_runALL_chr23.txt"); // environmental variance
+	}
+	
+	// inut deleterious DFE
+	if (exists("hs_in")==0){
+		defineConstant("hs_in","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Collabs/Cock/genetic_rescue/1_hs_prod1_hmode1_Ne20K_step40K.txt"); // environmental variance
+	}
+	
+	defineConstant("rho", 1e-03); //  recombination rate
+	
+	defineConstant("del_mut", 1000); // number of deleterious mutation types
+	
+	Glen=geneLength*g; // genomic region simulated
+	defineConstant("mu", U/(2*Glen)); //  mutation rate
+	
+	
+	// Intilialize
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(keepPedigrees=T);
+	//	initializeTreeSeq();
+	
+	hs=readFile(hs_in);
+	hs=hs[1:(length(hs)-1)];
+	hs=hs[sample(0:(length(hs)-1),del_mut)];
+	s=sapply(hs,"asFloat(strsplit(applyValue,'\t')[3]);");
+	s=-1*s;
+	h=sapply(hs,"asFloat(strsplit(applyValue,'\t')[4]);");
+	prop=rep(1/del_mut,del_mut);
+	prop_exons=sapply(prop,"(applyValue*2.31)/1;");
+	prop_introns=sapply(prop,"(applyValue*0.8)/1;");
+	prop_intergenic=sapply(prop,"(applyValue*0)/1;");
+	
+	//	defineConstant("X0",prop);
+	//	defineConstant("X1",prop_exons);
+	//	defineConstant("X2",prop_introns);
+	//	defineConstant("X3",prop_intergenic);
+	//	defineConstant("X4",s);
+	//	defineConstant("X5",h);
+	//	defineConstant("X6",m2_gamma);
+	
+	
+	// define mutation types
+	for (i in 0:(length(prop)-1))
+	{
+		initializeMutationType(i+2, h[i], "f", asFloat(s[i]));
+		print("mut:"+(i+2)+" - " + "h:"+h[i]+" - "+ "s:" + asFloat(s[i]));
+	}
+	
+	defineConstant("mut_neutral", 1); //  store neutral mutation id
+	initializeMutationType('m1', 0.5, "f", 0.0);         // neutral
+	
+	// distribution of mutation types
+	initializeGenomicElementType("g1", 1:(del_mut+1), c(1.0,prop_exons));  // exon
+	initializeGenomicElementType("g2", 1:(del_mut+1), c(1.0,prop_introns));  // intron
+	initializeGenomicElementType("g3", 1:(del_mut+1), c(1.0,prop_intergenic));  // intergeneic
+	initializeGenomicElementType("g4", 1:(del_mut+1), c(1.0,prop_exons));  // exome
+	
+	// with the code below you can assign mutation rates to each element if needed. Here is redudant as mutation rate is flat
+	// this code is still needed to initializeGenomicElement according to the genomic map
+	coord_file=readFile(coord_file_in);
+	mu_rates=c();
+	mu_ends=c();
+	mu_features=c();
+	mu_exome=mu;
+	mu_exon=(2.31*muChrom)/(2.31+1);
+	mu_intron=(0.8*muChrom)/1;
+	mu_interG=0;
+	mu_exome=(2.31*mu_exome)/(2.31+1);
+	
+	for (coord_line in coord_file)
+	{
+		ROW = strsplit(coord_line, "\t");
+		feature = ROW[2];
+		
+		if(feature=="exon") {
+			initializeGenomicElement(g1, asInteger(ROW[3]), asInteger(ROW[4]));
+			mu_rates=c(mu_rates,muChrom);
+			mu_features=c(mu_features,"exon");
+			mu_ends=c(mu_ends,asInteger(ROW[4]));
+		}
+		
+		if(feature=="intron") {
+			initializeGenomicElement(g2, asInteger(ROW[3]), asInteger(ROW[4]));
+			mu_rates=c(mu_rates,muChrom);
+			mu_features=c(mu_features,"intron");
+			mu_ends=c(mu_ends,asInteger(ROW[4]));
+		
+		}
+		if(feature=="non_coding") {
+			initializeGenomicElement(g3, asInteger(ROW[3]), asInteger(ROW[4]));
+			mu_rates=c(mu_rates,muChrom);
+			mu_features=c(mu_features,"interGen");
+			mu_ends=c(mu_ends,asInteger(ROW[4]));
+		}
+	
+	}
+	
+	chromEnd=mu_ends[length(mu_ends)-1]+1;
+	gene_nums = rep(g/chrNum,chrNum);
+	for (i in 1:g){
+		initializeGenomicElement(g1, chromEnd+((i-1)*geneLength)+(i-1), chromEnd+(i*geneLength)+(i-2) );
+		mu_rates=c(mu_rates,mu_exome);
+		mu_features=c(mu_features,"exome");
+		mu_ends=c(mu_ends,chromEnd+(i*geneLength)+(i-2));
+	}
+	
+	mu_rates=mu_rates*SCALE;
+	
+	initializeMutationRate(mu_rates, mu_ends);
+	
+	// recombination rate according to recombination map
+	// recombination rate landscape
+	rho_file = readFile(rho_file_in);
+	rates = NULL;
+	ends = NULL;
+	
+	for (rho_line in rho_file)
+	{
+		components = strsplit(rho_line, "\t");
+		ends = c(ends, asInteger(components[2]));
+		rates = c(rates, asFloat(components[7]));
+	}
+	rates = rates*SCALE;
+	// recombination rates for exome
+	// Multiple chromosomes:
+	for (i in 1:(size(gene_nums)-1)){
+		rates=c(rates, 0, rep(c(rho, 0), asInteger(gene_nums[i-1]-1)), 0.5);
+	}
+	rates=c(rates, 0, rep(c(rho, 0), asInteger(gene_nums[size(gene_nums)-1]-1)));
+	
+	for (i in 1:g){
+		ends=c(ends, chromEnd+(i*geneLength)+(i-2), chromEnd+(i*geneLength)+(i-1));
+	}
+	ends=ends[0:(size(ends)-2)];
+	
+	defineConstant("recomb_ends", ends);
+	defineConstant("recomb_rates", rates);
+	defineConstant("mut_features", mu_features);
+	defineConstant("mut_ends", mu_ends);
+	defineConstant("mut_rates", mu_rates);
+	initializeRecombinationRate(rates, ends);
+	
+	// set seed
+	setSeed(asInteger(seed));
+	
+	// lenght of chr = last position of rho file
+	defineConstant("chromLen", ends[(length(ends)-1)]);
+	defineConstant("seqLength", chromLen);
+
+}
+
+1 early() {
+	
+	sim.mutationTypes[sim.mutationTypes.id==mut_neutral].convertToSubstitution=T;
+		
+defineConstant("OUTpref",outDIR+"/"+outName+"_gN"+g+"_gL"+geneLength+"_chrN"+chrNum+"_SCALE"+SCALE+"_seed"+getSeed());
+	
+	print(OUTpref);
+	
+	// output recombination map used to be later used in pyslim for recapitation
+	recRates=sim.chromosome.recombinationRates;
+	recPos=sim.chromosome.recombinationEndPositions;
+	writeFile(OUTpref+"_recRates.txt",asString(recRates));
+	writeFile(OUTpref+"_recPos.txt",asString(recPos));
+
+	writeFile(OUTpref+"_mut_ends.txt",asString(mut_ends));
+	writeFile(OUTpref+"_mut_rates.txt",asString(mut_rates));
+	writeFile(OUTpref+"_mut_features.txt",asString(mut_features));
+	
+	sim.simulationFinished();
+
+}

@@ -1,0 +1,49 @@
+initialize() {
+	
+	if (exists("chrSize")==0){
+		defineConstant("chrSize",8801001); // intput chromsome size
+	}
+	
+	if (exists("treeIN")==0){
+		defineConstant("treeIN","/Users/nrv690/Dropbox/Hernan_main_dropbox/GENDANGERED/Xufen/slim/0_new_dec23/0_out_msprimeBurn_ReHo_nonWF_v1_chr23_gN1000_gL1000_U0.5_muChr2.3e-09_muEx2.5e-07_Ne1000_MigRates0.02_0.05_seqLen8801001_msprime.tree");  // intput msprime burnin file
+	}
+	
+	initializeSLiMModelType("nonWF");
+	initializeMutationRate(0);
+	initializeTreeSeq();
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome with uniform recombination
+	initializeGenomicElement(g1, 0, asInteger(chrSize-1));
+	if (exists("roh")==0){
+		defineConstant("roh",1e-8); // recombination rate
+	}
+	initializeRecombinationRate(roh);
+}
+
+// read tree and output slim file
+1 early() {
+	cat("reading tree file - " + date()+ " --" +time());
+	sim.readFromPopulationFile(treeIN);
+	sim.subpopulations.individuals.uniqueMutations.subpopID=1;
+	CMND="echo " +treeIN + " | sed s'/.tree/_fullOut.slim/'";
+	NAME=system(CMND);
+	cat("output commands - " + CMND);
+	cat("output fullOUT file - " + date()+ " --" +time());
+	sim.outputFull(NAME);
+	sim.simulationFinished();
+}
+
+//100: late(){sim.simulationFinished();}
+
+/// Print progress
+1: late() {
+	if(sim.generation == 1 | sim.generation % 100 ==0){
+		print(date() + "\t" + time() + "\t" + "generation: " + sim.generation + "\t" + "N: " + sim.subpopulations.individualCount+ "  memory usage: "+usage()/1000+"Gb");
+	}
+}

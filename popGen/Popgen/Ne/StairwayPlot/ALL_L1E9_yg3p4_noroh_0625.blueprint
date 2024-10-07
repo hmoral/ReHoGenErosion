@@ -1,0 +1,25 @@
+#example blueprint file
+#input setting
+popid: ALL_L1E9_yg3p4_noroh_0625 # id of the population (no white space)
+nseq: 40 # number of sequences
+L: 1102960466 # see log 0408
+whether_folded: false # whethr the SFS is folded (true or false)
+SFS: 2010414.62 1233603.12  814464.44  596960.02  462781.55  372671.46  309781.51  263414.32  225778.45  198954.77  174733.94   157786.95  141486.21  130504.13  118612.85  111144.88  102812.36   95607.42   90254.98   96494.81   77618.59   76310.77   73335.78  69977.74   67783.62   65740.05   63715.69   62324.00   61227.72   61663.64   61166.98   61857.66   61784.37   62881.33   64968.10   66124.82   69173.04   73896.15   80648.43 
+#smallest_size_of_SFS_bin_used_for_estimation: 1 # default is 1; to ignore singletons, uncomment this line and change this number to 2
+#largest_size_of_SFS_bin_used_for_estimation: 29 # default is n-1; to ignore singletons, uncomment this line and change this number to nseq-2
+pct_training: 0.67 # percentage of sites for training
+nrand: 7	15	22	28 # number of random break points for each try (separated by white space)
+project_dir: ALL_L1E9_0416_yg3p4 # project directory
+stairway_plot_dir: stairway_plot_es # directory to the stairway plot files
+ninput: 200 # number of input files to be created for each estimation
+#random_seed: 6
+#output setting
+mu: 4.6e-9 # assumed mutation rate per site per generation 4.6e-9
+year_per_generation: 3.4 # assumed generation time (in years) # another generation time
+#plot setting
+plot_title: ALL_20indi # title of the plot
+xrange: 0.01,0.5 # Time (1k year) range; format: xmin,xmax; "0,0" for default
+yrange: 0,20 # Ne (1k individual) range; format: xmin,xmax; "0,0" for default
+xspacing: 1 # X axis spacing
+yspacing: 2 # Y axis spacing
+fontsize: 12 # Font size
